@@ -31,14 +31,15 @@ window.google.script.run = {
   },
   
   _goiMayChu: function(tenGoiHam, cacThamSo) {
-    const taiKhoanSuDung = sessionStorage.getItem("CD_TAI_KHOAN") || "";
+    // KHẮC PHỤC RED FLAG: Gửi nguyên chuỗi Token mã hóa lên máy chủ thay vì email trần
+    const maXacThuc = sessionStorage.getItem("CD_TOKEN") || sessionStorage.getItem("CD_TAI_KHOAN") || "";
     const thamSoTruyen = {
       method: 'POST',
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         tenHam: tenGoiHam,
         thamSo: cacThamSo,
-        taiKhoan: taiKhoanSuDung
+        token: maXacThuc // Đã thay biến taiKhoan thành biến bảo mật token
       })
     };
     
