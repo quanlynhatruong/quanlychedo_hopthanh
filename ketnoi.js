@@ -1,40 +1,65 @@
-/**
- * CẤU HÌNH GIAO DIỆN & KẾT NỐI HỆ THỐNG WEB APP
- * Hệ thống: Quản lý Lương & Thâm niên (CD)
- * Tác giả: Hoàng Ngọc Lâm
- */
+// ==========================================
+// CẤU HÌNH GIAO DIỆN & KẾT NỐI API
+// ==========================================
+const HT_DUONG_DAN_API = "https://script.google.com/macros/s/AKfycbzOVyDWdKsn0mG0ba38cpimEaQjkLNG-XlK_pOZ_pvW5gmw1-O9IlErQrJVvSn2bZLi/exec";
 
-// ĐỊA CHỈ API WEB APP (ĐUÔI /EXEC)
-const HT_DUONG_DAN_API = "https://script.google.com/macros/s/AKfycbzOVyDWdKsn0mG0ba38cpimEaQjkLNG-XlK_pOZ_pvW5gmw1-O9IlErQrJVvSn2bZLi/exec"; 
+// Cấu hình định danh nhà trường
+const HT_LOGO = "https://i.ibb.co/SXSKh9xM/Logo-m-i-c-a-tr-ng-H-p-Th-Nh.png";
+const HT_TEN_TRUONG = "Trường TH&THCS Hợp Thành";
+const HT_TIEU_DE_TRANG = "Quản lý Lương & Thâm niên - Trường TH&THCS Hợp Thành";
 
-// THÔNG SỐ ĐỊNH DANH HỆ THỐNG
-var CD_LINK_LOGO = "https://i.ibb.co/XkjLVJFt/logo-TH-THCS-v3.png";
-var CD_TEN_TRUONG = "Trường TH&THCS Hợp Thành";
-var CD_TEN_TRUONG_UP = "TRƯỜNG TH&THCS HỢP THÀNH";
+// Cấu hình API Google Login
+const HT_CLIENT_ID = "407480994586-m6fpq6sfcc90qqj9k08rsmi1lge6br94.apps.googleusercontent.com";
 
-var CD_TEN_PM = "Quản lý Lương & Thâm niên";
-var CD_TEN_PM_UP = "QUẢN LÝ LƯƠNG & THÂM NIÊN";
-var CD_PHIEN_BAN = "V2.3.2026";
-var CD_TAC_GIA = "Hoàng Ngọc Lâm";
-var CD_TAC_GIA_UP = "HOÀNG NGỌC LÂM";
 
-var CD_GOOGLE_CLIENT_ID = "407480994586-m6fpq6sfcc90qqj9k08rsmi1lge6br94.apps.googleusercontent.com";
-var CD_MO_TA = "Hệ thống quản lý dữ liệu chế độ lương và thâm niên nội bộ - " + CD_TEN_TRUONG;
+// KHẮC PHỤC LỖI TREO MÀN HÌNH: Kế thừa biến google (nếu có) thay vì khai báo mới
+window.google = window.google || {};
+window.google.script = window.google.script || {};
 
-/* ========================================================================= */
-/* KHỞI TẠO CẤU TRÚC HEADER TỰ ĐỘNG                                          */
-/* ========================================================================= */
-(function() {
-    var metaDesc = document.createElement('meta');
-    metaDesc.name = "description";
-    metaDesc.content = CD_MO_TA;
-    document.head.appendChild(metaDesc);
+window.google.script.run = {
+  _xuLyThanhCong: null,
+  _xuLyThatBai: null,
+  
+  withSuccessHandler: function(hamXuLy) {
+    this._xuLyThanhCong = hamXuLy;
+    return this;
+  },
+  
+  withFailureHandler: function(hamXuLy) {
+    this._xuLyThatBai = hamXuLy;
+    return this;
+  },
+  
+  _goiMayChu: function(tenGoiHam, cacThamSo) {
+    const taiKhoanSuDung = sessionStorage.getItem("CD_TAI_KHOAN") || "";
+    const thamSoTruyen = {
+      method: 'POST',
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        tenHam: tenGoiHam,
+        thamSo: cacThamSo,
+        taiKhoan: taiKhoanSuDung
+      })
+    };
     
-    document.title = CD_TEN_PM + " - " + CD_TEN_TRUONG;
+    const thanhCong = this._xuLyThanhCong;
+    const thatBai = this._xuLyThatBai;
     
-    var linkIcon = document.createElement('link');
-    linkIcon.rel = 'icon';
-    linkIcon.id = 'page_favicon';
-    linkIcon.href = CD_LINK_LOGO;
-    document.head.appendChild(linkIcon);
-})();
+    // Xóa bộ nhớ đệm để chuẩn bị cho lượt gọi API tiếp theo
+    this._xuLyThanhCong = null;
+    this._xuLyThatBai = null;
+    
+    fetch(HT_DUONG_DAN_API, thamSoTruyen)
+      .then(ph => ph.json())
+      .then(kq => {
+        if (kq.error && thatBai) {
+          thatBai(new Error(kq.error));
+        } else if (thanhCong) {
+          thanhCong(kq.data);
+        }
+      })
+      .catch(loi => {
+        if (thatBai) thatBai(loi);
+      });
+  }
+};
