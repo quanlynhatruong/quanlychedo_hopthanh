@@ -8,7 +8,7 @@
 const HT_DUONG_DAN_API = "https://script.google.com/macros/s/AKfycbxeVlyhO7O7mGq_xKkX5_m6fR5yE0_K6S.../exec"; 
 
 // THÔNG SỐ ĐỊNH DANH HỆ THỐNG
-var CD_LINK_LOGO = "https://i.ibb.co/SXSKh9xM/Logo-m-i-c-a-tr-ng-H-p-Th-Nh.png";
+var CD_LINK_LOGO = "https://i.ibb.co/XkjLVJFt/logo-TH-THCS-v3.png";
 var CD_TEN_TRUONG = "Trường TH&THCS Hợp Thành";
 var CD_TEN_TRUONG_UP = "TRƯỜNG TH&THCS HỢP THÀNH";
 
