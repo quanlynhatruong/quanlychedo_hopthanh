@@ -129,7 +129,7 @@
        <img id="deniedLogo" src="data:," style="height: 80px; margin-bottom: 10px;">
        <div class="denied-icon"><i class="bi bi-shield-lock-fill"></i></div>
        <div class="denied-title">KẾT NỐI THÀNH CÔNG</div>
-       <p style="font-size: 1.1rem; color: #444;">Xin chào: <span id="deniedEmailTxt" class="denied-email"></span></p>
+       <p style="font-size: 1.1rem; color: #444;">Hệ thống đã kết nối máy chủ an toàn</p>
        <p style="color:#666; font-size: 1rem; line-height: 1.5;">Tài khoản chưa được cấp quyền truy cập hệ thống.<br>Vui lòng liên hệ Admin để được hỗ trợ.</p>
        <div class="d-flex justify-content-center gap-3 mt-4">
           <button class="btn btn-outline-danger rounded-pill px-4 fw-bold" onclick="logoutGoogle()">🔄 Đổi tài khoản</button>
@@ -214,7 +214,7 @@
     CD_CapNhatMotDong: function(loai, viTri, dl) { this._goiMayChu('CD_CapNhatMotDong', [loai, viTri, dl]); },
     CD_TraCuuLuong: function(boLoc) { this._goiMayChu('CD_TraCuuLuong', [boLoc]); },
     CD_TraCuuThamNien: function(boLoc) { this._goiMayChu('CD_TraCuuThamNien', [boLoc]); },
-    CD_LayQuyenNguoiDung: function(tk) { this._goiMayChu('CD_LayQuyenNguoiDung', [tk]); },
+    CD_LayQuyenNguoiDung: function() { this._goiMayChu('CD_LayQuyenNguoiDung', []); }, // Đã xóa tham số thừa
     CD_KiemTraQuyenDrive: function() { this._goiMayChu('CD_KiemTraQuyenDrive', []); }
   });
 
@@ -257,7 +257,6 @@
   });
 
   function hienThiNutDangNhap() {
-      // Khởi tạo nút đăng nhập Google bằng JavaScript API (Loại bỏ thuộc tính cứng)
       if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
           google.accounts.id.initialize({
               client_id: (typeof HT_CLIENT_ID !== 'undefined') ? HT_CLIENT_ID : "",
@@ -269,7 +268,6 @@
               { theme: "outline", size: "large", type: "standard", shape: "rectangular", logo_alignment: "left", text: "sign_in_with" }
           );
       } else {
-          // Retry nếu thư viện chưa tải xong
           setTimeout(hienThiNutDangNhap, 100);
       }
   }
@@ -278,19 +276,16 @@
     return true; 
   }
 
-  function decodeJwtResponse(token) {
-    let base64Url = token.split('.')[1]; let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
-    return JSON.parse(jsonPayload);
-  }
+  // ĐÃ XÓA CHỨC NĂNG decodeJwtResponse THEO TIÊU CHUẨN AN TOÀN
   
   function handleCredentialResponse(response) {
-      const payload = decodeJwtResponse(response.credential);
-      sessionStorage.setItem("CD_TAI_KHOAN", payload.email); 
+      sessionStorage.removeItem("CD_TAI_KHOAN"); // Xóa cache cũ gây hại
+      sessionStorage.setItem("CD_TOKEN", response.credential); // CHỈ lưu mã Token
       location.reload();
   }
   
   function logoutGoogle() { 
+      sessionStorage.removeItem("CD_TOKEN"); 
       sessionStorage.removeItem("CD_TAI_KHOAN"); 
       sessionStorage.removeItem("CD_TRIAL_SHOWN");
       location.reload(); 
@@ -678,12 +673,13 @@
           const sInputs = ['s_hoten', 's_thang', 's_nam'];
           sInputs.forEach(id => { const el = document.getElementById(id); if(el) el.addEventListener("keyup", function(e) { if(e.key === 'Enter') doSearch(); }); });
           
-          const taiKhoanLuu = sessionStorage.getItem("CD_TAI_KHOAN");
+          // Ưu tiên đọc Token bảo mật, nếu không có đọc tạm email cũ để chống gãy hệ thống
+          const maXacThuc = sessionStorage.getItem("CD_TOKEN") || sessionStorage.getItem("CD_TAI_KHOAN");
           
-          if (!taiKhoanLuu) {
+          if (!maXacThuc) {
             document.getElementById('login-overlay').style.display = 'flex'; 
             document.getElementById('pageLoading').style.display = 'none';
-            hienThiNutDangNhap(); // <--- Kích hoạt nút đăng nhập tự động
+            hienThiNutDangNhap(); 
           } else {
             document.getElementById('login-overlay').style.display = 'none'; 
             document.getElementById('pageLoading').style.display = 'flex';
@@ -693,11 +689,13 @@
                 throw new Error("Lỗi nạp thư viện kết nối API. Xin vui lòng Tải lại (Refresh) trang web!");
             }
 
+            // GỌI HÀM KHÔNG CẦN TRUYỀN BIẾN ĐỂ MÁY CHỦ TỰ ĐỘNG BÓC TÁCH AN TOÀN
             window.google.script.run.withSuccessHandler(ctx => {
               document.getElementById('pageLoading').style.display = 'none';
-              if (!ctx.quyenXem && !ctx.quyenSua) { 
+              
+              if (!ctx.taiKhoan || (!ctx.quyenXem && !ctx.quyenSua)) { 
                   document.getElementById('accessDenied').style.display = 'flex'; 
-                  document.getElementById('deniedEmailTxt').innerText = ctx.taiKhoan;
+                  document.getElementById('deniedEmailTxt').innerText = ctx.taiKhoan || "Phiên hết hạn";
                   return; 
               }
               if (!ctx.quyenSua) {
@@ -716,7 +714,7 @@
             }).withFailureHandler(err => { 
                 document.getElementById('pageLoading').style.display = 'none'; 
                 showNotify("Lỗi máy chủ API: " + err.message, "error"); 
-            }).CD_LayQuyenNguoiDung(taiKhoanLuu);
+            }).CD_LayQuyenNguoiDung();
           }
       } catch (e) {
           document.getElementById('pageLoading').style.display = 'none';
